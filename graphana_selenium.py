@@ -4,6 +4,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import io
+from PIL import Image
 from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS
 
 options = Options()
@@ -49,14 +51,12 @@ def login_user():
 
 
 def wait_for_widgets_to_load(max_timeout=60):
-    start = time.time()
     WebDriverWait(driver, max_timeout).until(
         lambda driver: len(
             driver.find_elements(By.XPATH, "//div[@aria-label='Panel loading bar']")
         )
         == 0
     )
-    print("Load time = ", time.time() - start)
 
 
 def scroll_to_widget(heading):
@@ -72,6 +72,17 @@ def get_value(header):
     return driver.find_element(
         By.XPATH, f"//div[contains(@data-testid,'{header}')]//div[@title]"
     ).text
+
+
+def take_screenshots():
+    ws_xpath = "//div[contains(@data-testid,'Websocket Connections')]//div[@data-testid='uplot-main-div']"
+    cpu_xpath = f"//div[@data-panelid and .//span[contains(text(), '{HEADINGS['cpu']}')]]/following-sibling::div[2]//div[@data-testid='uplot-main-div']"
+    memory_xpath = f"//div[@data-panelid and .//span[contains(text(), '{HEADINGS['memory']}')]]/following-sibling::div[2]//div[@data-testid='uplot-main-div']"
+    xpaths = [(ws_xpath, "websockets"), (cpu_xpath, "cpu"), (memory_xpath, "memory")]
+    for xpath, filename in xpaths:
+        img_binary = driver.find_element(By.XPATH, xpath).screenshot_as_png
+        img = Image.open(io.BytesIO(img_binary))
+        img.save(f"{filename}.png")
 
 
 def get_table_data(heading, two_cols=False, three_cols=False):
@@ -171,11 +182,13 @@ try:
     scroll_to_widget(HEADINGS["cpu"])
     output["cpu"] = get_table_data(HEADINGS["cpu"], two_cols=True)
 
+    # Screenshots
+    take_screenshots()
+
     print(output)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
 finally:
-    input()
     driver.close()
     exit()
