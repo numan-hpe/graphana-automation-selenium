@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import io
+import os
 from PIL import Image
 from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS
 
@@ -13,44 +14,45 @@ options.add_argument("--start-maximized")
 # options.add_argument("--headless")
 
 driver = webdriver.Chrome(options=options)
-region = "ccprodusw2"
+logged_in = False
 
 
 def login_user():
+    global logged_in
     # Perform user login once Grafana login page is opened
     start_time = time.time()  # Record the start time
-    login_timeout = 90  # Maximum time to wait for login (in seconds)
+    login_timeout = 180  # Maximum time to wait for login (in seconds)
 
     WebDriverWait(driver, 15).until(
         EC.element_to_be_clickable((By.XPATH, "//a[@href='login/generic_oauth']"))
     ).click()
 
-    WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@type='email']"))
-    ).send_keys(USER_EMAIL)
+    if not logged_in:
+        WebDriverWait(driver, login_timeout).until(
+            EC.element_to_be_clickable((By.XPATH, "//input[@type='email']"))
+        ).send_keys(USER_EMAIL)
 
-    driver.find_element(By.XPATH, "//input[@type='submit']").click()
-    time.sleep(5)
-    WebDriverWait(driver, 30).until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']"))
-    ).click()
+        driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        time.sleep(5)
+        WebDriverWait(driver, login_timeout).until(
+            EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']"))
+        ).click()
 
-    login_successful = False
-    while time.time() - start_time < login_timeout:
-        current_url = driver.current_url
-        if "rugby-daily-check-engine-light" in current_url:
-            print("Dashboard loaded successfully!")
-            login_successful = True
-            break
-        else:
-            time.sleep(2)  # Check every 2 seconds
+        while time.time() - start_time < login_timeout:
+            current_url = driver.current_url
+            if "rugby-daily-check-engine-light" in current_url:
+                print("Dashboard loaded successfully!")
+                logged_in = True
+                break
+            else:
+                time.sleep(2)  # Check every 2 seconds
 
-    if not login_successful:
-        print("Login failed")
-        raise Exception
+        if not logged_in:
+            print("Login failed")
+            raise Exception
 
 
-def wait_for_widgets_to_load(max_timeout=60):
+def wait_for_widgets_to_load(max_timeout=120):
     WebDriverWait(driver, max_timeout).until(
         lambda driver: len(
             driver.find_elements(By.XPATH, "//div[@aria-label='Panel loading bar']")
@@ -78,8 +80,13 @@ def take_screenshots():
     ws_xpath = "//div[contains(@data-testid,'Websocket Connections')]//div[@data-testid='uplot-main-div']"
     cpu_xpath = f"//div[@data-panelid and .//span[contains(text(), '{HEADINGS['cpu']}')]]/following-sibling::div[2]//div[@data-testid='uplot-main-div']"
     memory_xpath = f"//div[@data-panelid and .//span[contains(text(), '{HEADINGS['memory']}')]]/following-sibling::div[2]//div[@data-testid='uplot-main-div']"
-    xpaths = [(ws_xpath, "websockets"), (cpu_xpath, "cpu"), (memory_xpath, "memory")]
-    for xpath, filename in xpaths:
+    os.makedirs(region, exist_ok=True)
+    pairs = [
+        (ws_xpath, f"{region}/websockets"),
+        (cpu_xpath, f"{region}/cpu"),
+        (memory_xpath, f"{region}/memory"),
+    ]
+    for xpath, filename in pairs:
         img_binary = driver.find_element(By.XPATH, xpath).screenshot_as_png
         img = Image.open(io.BytesIO(img_binary))
         img.save(f"{filename}.png")
@@ -126,66 +133,71 @@ def get_table_data(heading, two_cols=False, three_cols=False):
         return data
 
 
-output = {}
-try:
-    print("Opening Grafana dashboard...")
-    driver.get(REGION_DATA[region])
-
-    login_user()
-    # Wait for the "rugbyservice" button to be clickable and click it
-    WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.ID, "var-rugbyservice"))
+def select_services():
+    WebDriverWait(driver, 30).until(
+        EC.visibility_of_element_located((By.ID, "var-rugbyservice"))
     ).click()
 
-    # Wait for the dropdown to be visible
     dropdown = WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.ID, "options-rugbyservice"))
     )
 
-    # Find all the list items within the dropdown
     options = dropdown.find_elements(By.TAG_NAME, "li")
-
+    region_services = [f"{region}-{service}" for service in SERVICES]
     for option in options:
-        if option.text.split("-", maxsplit=1)[-1] in SERVICES:
+        if option.text in region_services:
             option.click()
 
     driver.find_element(By.TAG_NAME, "html").click()
-    time.sleep(1)
 
-    # SLI
-    wait_for_widgets_to_load()
-    output["sli"] = get_value(HEADINGS["sli"])
-    # Websockets
-    scroll_to_widget(HEADINGS["websockets"])
-    output["websockets"] = get_value(HEADINGS["websockets"])
-    # duration > 500ms
-    scroll_to_widget(HEADINGS["duration_over_500ms"])
-    output["duration_over_500ms"] = get_table_data(HEADINGS["duration_over_500ms"])
-    # duration > 500ms - special cases
-    scroll_to_widget(HEADINGS["duration_over_500ms_special"])
-    output["duration_over_500ms_special"] = get_table_data(
-        HEADINGS["duration_over_500ms_special"]
-    )
-    # HTTP 5x
-    scroll_to_widget(HEADINGS["http_5x"])
-    output["http_5x"] = get_table_data(HEADINGS["http_5x"])
-    # Pod restarts
-    scroll_to_widget(HEADINGS["pod_restarts"])
-    output["pod_restarts"] = get_table_data(HEADINGS["pod_restarts"], two_cols=True)
-    # Pod counts
-    scroll_to_widget(HEADINGS["pod_counts"])
-    output["pod_counts"] = get_table_data(HEADINGS["pod_counts"], three_cols=True)
-    # Memory utilization
-    scroll_to_widget(HEADINGS["memory"])
-    output["memory"] = get_table_data(HEADINGS["memory"], two_cols=True)
-    # CPU utilization
-    scroll_to_widget(HEADINGS["cpu"])
-    output["cpu"] = get_table_data(HEADINGS["cpu"], two_cols=True)
 
-    # Screenshots
-    take_screenshots()
+output = {}
+try:
+    for name, url in REGION_DATA.items():
+        region = name
+        print(f"Opening {region} Grafana dashboard...")
+        driver.get(url)
 
-    print(output)
+        login_user()
+
+        select_services()
+
+        time.sleep(5)
+
+        # SLI
+        wait_for_widgets_to_load()
+        output["sli"] = get_value(HEADINGS["sli"])
+        # Websockets
+        scroll_to_widget(HEADINGS["websockets"])
+        output["websockets"] = get_value(HEADINGS["websockets"])
+        # duration > 500ms
+        scroll_to_widget(HEADINGS["duration_over_500ms"])
+        output["duration_over_500ms"] = get_table_data(HEADINGS["duration_over_500ms"])
+        # duration > 500ms - special cases
+        scroll_to_widget(HEADINGS["duration_over_500ms_special"])
+        output["duration_over_500ms_special"] = get_table_data(
+            HEADINGS["duration_over_500ms_special"]
+        )
+        # HTTP 5x
+        scroll_to_widget(HEADINGS["http_5x"])
+        output["http_5x"] = get_table_data(HEADINGS["http_5x"])
+        # Pod restarts
+        scroll_to_widget(HEADINGS["pod_restarts"])
+        output["pod_restarts"] = get_table_data(HEADINGS["pod_restarts"], two_cols=True)
+        # Pod counts
+        scroll_to_widget(HEADINGS["pod_counts"])
+        output["pod_counts"] = get_table_data(HEADINGS["pod_counts"], three_cols=True)
+        # Memory utilization
+        scroll_to_widget(HEADINGS["memory"])
+        output["memory"] = get_table_data(HEADINGS["memory"], two_cols=True)
+        # CPU utilization
+        scroll_to_widget(HEADINGS["cpu"])
+        output["cpu"] = get_table_data(HEADINGS["cpu"], two_cols=True)
+
+        # Screenshots
+        take_screenshots()
+
+        print(output)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
