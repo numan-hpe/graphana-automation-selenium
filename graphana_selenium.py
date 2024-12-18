@@ -3,11 +3,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from pywinauto import Application, Desktop
+import pyautogui
 import time
 import io
 import os
+from pdf_generator import generate_pdf
 from PIL import Image
-from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS
+from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS, PIN
 
 options = Options()
 options.add_argument("--start-maximized")
@@ -16,6 +19,53 @@ options.add_argument("--start-maximized")
 driver = webdriver.Chrome(options=options)
 logged_in = False
 
+def wait_for_window(title_pattern, timeout=30):
+    """
+    Wait for a window matching the title pattern to appear within a timeout.
+    """
+    print(f"Waiting for window: '{title_pattern}'")
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            # Check for the window on the desktop
+            window = Desktop(backend="uia").window(title_re=title_pattern)
+            if window.exists():
+                print(f"Window found: {title_pattern}")
+                return window
+        except Exception:
+            pass
+        time.sleep(1)
+    raise Exception(f"Timeout: Window '{title_pattern}' did not appear.")
+
+def handle_certificate_selection():
+    try:
+        # Wait for the dialog to appear (adjust sleep as necessary)
+        time.sleep(5)
+
+        # Simulate pressing 'Tab' to navigate and 'Enter' to select 'OK'
+        pyautogui.press("tab", presses=2)
+        pyautogui.press("enter")
+        print("Certificate selected successfully.")
+    except Exception as e:
+        print("Error handling certificate dialog:", e)
+
+def handle_pin_entry():
+    """Handles the Windows Security PIN entry dialog."""
+    try:
+        window = wait_for_window("Windows Security")
+        window.set_focus()
+        time.sleep(1)  # Ensure the window is ready
+        
+        # Enter PIN
+        window.child_window(control_type="Edit").type_keys(PIN, with_spaces=True)
+        print("PIN entered successfully.")
+
+        # Press OK
+        window.child_window(title="OK", control_type="Button").click()
+        print("Clicked OK on PIN entry dialog.")
+    except Exception as e:
+        print(f"Error handling PIN entry: {e}")
+        raise
 
 def login_user():
     global logged_in
@@ -34,6 +84,9 @@ def login_user():
 
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
         time.sleep(5)
+        handle_certificate_selection()
+        time.sleep(5)
+        handle_pin_entry()
         WebDriverWait(driver, login_timeout).until(
             EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']"))
         ).click()
@@ -90,6 +143,7 @@ def take_screenshots():
         img_binary = driver.find_element(By.XPATH, xpath).screenshot_as_png
         img = Image.open(io.BytesIO(img_binary))
         img.save(f"{filename}.png")
+    return [filename for _, filename in pairs]
 
 
 def get_table_data(heading, two_cols=False, three_cols=False):
@@ -195,9 +249,10 @@ try:
         output["cpu"] = get_table_data(HEADINGS["cpu"], two_cols=True)
 
         # Screenshots
-        take_screenshots()
+        screenshots = take_screenshots()
 
         print(output)
+        generate_pdf(output, "service_report.pdf", screenshots)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
