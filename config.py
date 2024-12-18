@@ -1,10 +1,13 @@
-USER_EMAIL = "pranav-santoshk@hpe.com"
-PIN = "60170678"
+USER_EMAIL = "numan.naeem@hpe.com"
+PIN = "12121212"
 REGION_DATA = {
     "ccprodusw2": "https://ccprodusw2-us-west-2.cloudops.compute.cloud.hpe.com/grafana/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
     "ccprodeuc1": "https://ccprodeuc1-eu-central-1.cloudops.compute.cloud.hpe.com/grafana/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
     "ccprodane1": "https://ccprodane1-ap-northeast-1.cloudops.compute.cloud.hpe.com/grafana/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
     "pre-prod": "https://ccpreusw2-us-west-2.cloudops.compute.cloud.hpe.com/grafana/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
+}
+HUMIO_DATA = {
+    "ccprodusw2": "https://ccprodusw2-us-west-2.cloudops.compute.cloud.hpe.com/logs/computecentral/dashboards/Data%20Ingestion%20to%20Sustainability%20Insight%20Center?dashboardId=OEhGElYomuJaOVTfMuqr49OZgHkiHBOz&fullscreen=false&sharedTime=true&start=1d&updateFrequency=never"
 }
 SERVICES = ["keysmith", "charger", "charger-delta", "zinc", "roundup", "neptune"]
 HEADINGS = {
@@ -17,4 +20,14 @@ HEADINGS = {
     "pod_counts": "Pod Counts over time",
     "memory": "Namespace relative memory utilization",
     "cpu": "Namespace relative CPU utilization",
+}
+SCREENSHOT_DATA = {
+    "websockets": {"type": "small", "heading": "Websocket Connection"},
+    "cpu": {"type": "large", "heading": HEADINGS["cpu"]},
+    "memory": {"type": "large", "heading": HEADINGS["memory"]},
+}
+HUMIO_HEADINGS = {
+    "files_failures": "Files failed to upload",
+    "unknown_errors": "Unknown Error during server_metric_data message processing",
+    "bisbee_errors": "Exception while uploading file to bisbee",
 }

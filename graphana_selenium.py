@@ -10,7 +10,7 @@ import io
 import os
 from pdf_generator import generate_pdf
 from PIL import Image
-from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS, PIN
+from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS, PIN, SCREENSHOT_DATA
 
 options = Options()
 options.add_argument("--start-maximized")
@@ -18,6 +18,7 @@ options.add_argument("--start-maximized")
 
 driver = webdriver.Chrome(options=options)
 logged_in = False
+
 
 def wait_for_window(title_pattern, timeout=30):
     """
@@ -30,32 +31,28 @@ def wait_for_window(title_pattern, timeout=30):
             # Check for the window on the desktop
             window = Desktop(backend="uia").window(title_re=title_pattern)
             if window.exists():
-                print(f"Window found: {title_pattern}")
                 return window
         except Exception:
             pass
-        time.sleep(1)
     raise Exception(f"Timeout: Window '{title_pattern}' did not appear.")
+
 
 def handle_certificate_selection():
     try:
-        # Wait for the dialog to appear (adjust sleep as necessary)
-        time.sleep(5)
-
-        # Simulate pressing 'Tab' to navigate and 'Enter' to select 'OK'
         pyautogui.press("tab", presses=2)
         pyautogui.press("enter")
         print("Certificate selected successfully.")
     except Exception as e:
         print("Error handling certificate dialog:", e)
 
+
 def handle_pin_entry():
     """Handles the Windows Security PIN entry dialog."""
     try:
         window = wait_for_window("Windows Security")
         window.set_focus()
-        time.sleep(1)  # Ensure the window is ready
-        
+        time.sleep(0.5)  # Ensure the window is ready
+
         # Enter PIN
         window.child_window(control_type="Edit").type_keys(PIN, with_spaces=True)
         print("PIN entered successfully.")
@@ -66,6 +63,7 @@ def handle_pin_entry():
     except Exception as e:
         print(f"Error handling PIN entry: {e}")
         raise
+
 
 def login_user():
     global logged_in
@@ -85,7 +83,6 @@ def login_user():
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
         time.sleep(5)
         handle_certificate_selection()
-        time.sleep(5)
         handle_pin_entry()
         WebDriverWait(driver, login_timeout).until(
             EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']"))
@@ -130,20 +127,22 @@ def get_value(header):
 
 
 def take_screenshots():
-    ws_xpath = "//div[contains(@data-testid,'Websocket Connections')]//div[@data-testid='uplot-main-div']"
-    cpu_xpath = f"//div[@data-panelid and .//span[contains(text(), '{HEADINGS['cpu']}')]]/following-sibling::div[2]//div[@data-testid='uplot-main-div']"
-    memory_xpath = f"//div[@data-panelid and .//span[contains(text(), '{HEADINGS['memory']}')]]/following-sibling::div[2]//div[@data-testid='uplot-main-div']"
     os.makedirs(region, exist_ok=True)
-    pairs = [
-        (ws_xpath, f"{region}/websockets"),
-        (cpu_xpath, f"{region}/cpu"),
-        (memory_xpath, f"{region}/memory"),
-    ]
-    for xpath, filename in pairs:
+    paths = []
+
+    for name, data in SCREENSHOT_DATA.items():
+        xpath = (
+            f"//div[contains(@data-testid,'{data['heading']}')]"
+            if data["type"] == "small"
+            else f"//div[@data-panelid and .//span[contains(text(), '{data['heading']}')]]/following-sibling::div[2]"
+        )
         img_binary = driver.find_element(By.XPATH, xpath).screenshot_as_png
         img = Image.open(io.BytesIO(img_binary))
+        filename = f"{region}/{name}"
+        paths.append(filename)
         img.save(f"{filename}.png")
-    return [filename for _, filename in pairs]
+
+    return paths
 
 
 def get_table_data(heading, two_cols=False, three_cols=False):
@@ -252,7 +251,7 @@ try:
         screenshots = take_screenshots()
 
         print(output)
-        generate_pdf(output, "service_report.pdf", screenshots)
+        # generate_pdf(output, "service_report.pdf", screenshots)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
