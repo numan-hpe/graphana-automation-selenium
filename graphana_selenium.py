@@ -8,6 +8,7 @@ import pyautogui
 import time
 import io
 import os
+import json
 from pdf_generator import generate_pdf
 from PIL import Image
 from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS, PIN
@@ -206,6 +207,7 @@ def select_services():
 
 
 output = {}
+REGION_OUTPUTS = {}
 try:
     for name, url in REGION_DATA.items():
         region = name
@@ -250,9 +252,18 @@ try:
 
         # Screenshots
         screenshots = take_screenshots()
+        with open(os.path.join(region, "data.json"), "w") as json_file:
+            json.dump(output, json_file, indent=4)
+        
+        REGION_OUTPUTS[region] = output
+        print(f"Data collected for {region}")
 
         print(output)
-        generate_pdf(output, "service_report.pdf", screenshots)
+        # Collect all dynamically created region directories
+        region_dirs = [os.path.join(os.getcwd(), region) for region in REGION_DATA.keys()]
+        generate_pdf(region_dirs, "grafana_dashboard_report1.pdf")
+
+        #generate_pdf(output, "service_report.pdf", screenshots)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
