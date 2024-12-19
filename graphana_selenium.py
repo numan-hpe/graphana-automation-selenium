@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 from pywinauto import Desktop
 import pyautogui
 import time
@@ -82,7 +83,7 @@ def login_user():
         ).send_keys(USER_EMAIL)
 
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
-        time.sleep(5)
+        time.sleep(7)
         handle_certificate_selection()
         handle_pin_entry()
         WebDriverWait(driver, login_timeout).until(
@@ -147,20 +148,26 @@ def take_screenshots():
 
 
 def get_table_data(heading, two_cols=False, three_cols=False):
-    tbody_xpath = f"//div[@data-panelid and .//span[contains(text(), '{heading}')]]/following-sibling::div[2]//tbody"
+    table_xpath = f"//div[@data-panelid and .//span[contains(text(), '{heading}')]]/following-sibling::div[2]//table"
+    try:
+        name_header = driver.find_element(By.XPATH, f"{table_xpath}//th[@title='name']")
+        name_header.click()
+        name_header.click()
+    except NoSuchElementException:
+        pass
     col_1 = driver.find_elements(
         By.XPATH,
-        f"{tbody_xpath}//td[1]",
+        f"{table_xpath}//td[1]",
     )
     if two_cols or three_cols:
         col_2 = driver.find_elements(
             By.XPATH,
-            f"{tbody_xpath}//td[2]",
+            f"{table_xpath}//td[2]",
         )
     if three_cols:
         col_3 = driver.find_elements(
             By.XPATH,
-            f"{tbody_xpath}//td[3]",
+            f"{table_xpath}//td[3]",
         )
     if len(col_1) == 0:
         return "No data"
@@ -257,7 +264,6 @@ try:
         REGION_OUTPUTS[region] = output
         print(f"Data collected for {region}")
 
-        print(output)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)

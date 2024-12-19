@@ -10,6 +10,7 @@ from reportlab.platypus import (
     Spacer,
     ListFlowable,
     Image,
+    HRFlowable,
 )
 import os
 from config import SERVICES, REGION_DATA
@@ -36,7 +37,7 @@ def prepare_table_data(cpu, memory, pod_counts):
                 "name": service,
                 "cpu": svc_cpu["value"],
                 "memory": svc_memory["value"],
-                "pod_count": f"{svc_pod_count['value']} ({svc_pod_count['max']})",
+                "pod_count": f"{svc_pod_count['value']}  ({svc_pod_count['max']})",
             }
         )
     output.sort(key=lambda x: x["name"])
@@ -57,11 +58,9 @@ def prepare_basic_data(data, styles, elements):
         if key in data:
             if key in ["sli", "websockets"] or isinstance(data[key], str):
                 text = data[key]
-                elements.append(
-                    Paragraph(f"<b>{header}:</b> {text}", styles["BodyText"])
-                )
+                elements.append(Paragraph(f"<b>{header}:</b> {text}", styles["Normal"]))
             else:
-                elements.append(Paragraph(f"<b>{header}:</b>", styles["BodyText"]))
+                elements.append(Paragraph(f"<b>{header}:</b>", styles["Normal"]))
                 if isinstance(data[key][0], str):
                     list_items = [el for el in data[key]]
                 else:
@@ -73,12 +72,25 @@ def prepare_basic_data(data, styles, elements):
                         start=None,
                     )
                 )
+            elements.append(Spacer(0, 2))
 
 
-def draw_image(path):
-    f = open(path, "rb")
-    width = 1.5 * inch
-    return Image(f, 2 * width, width)
+def display_images_and_table(region, table, elements):
+    width = 3.782 * inch
+    height = width / 2
+    elements.append(Image(f"{region}/websockets.png", width, height, hAlign="LEFT"))
+    elements.append(Spacer(0, -(height - 5)))
+    elements.append(table)
+    elements.append(Spacer(0, height - 3))
+    elements.append(
+        Paragraph(
+            f"""
+            <img src='{region}/cpu.png' width='{width}' height='{height}' /> 
+            <img src='{region}/memory.png' width='{width}' height='{height}' />
+            """
+        )
+    )
+    return
 
 
 def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
@@ -93,7 +105,7 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
         pdf_filename,
         pagesize=portrait(A4),
         leftMargin=margin,
-        topMargin=margin,
+        topMargin=margin - 10,
         rightMargin=margin,
         bottomMargin=margin,
     )
@@ -103,10 +115,14 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
     # Title
     title = Paragraph("<b>Grafana Dashboard Report</b>", styles["Title"])
     elements.append(title)
-    elements.append(Spacer(1, 12))
+    # elements.append(Spacer(1, 12))
 
     # Process each region
     for region in REGION_DATA.keys():
+        elements.append(
+            HRFlowable(width="100%", color=colors.lightgrey, spaceBefore=10)
+        )
+
         json_file = f"{region}/data.json"
 
         if os.path.isfile(json_file):
@@ -126,9 +142,9 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
                     data["cpu"], data["memory"], data["pod_counts"]
                 )
                 metrics_table = create_table(
-                    table_data, ["Service", "CPU", "Memory", "Pod count (max)"]
+                    table_data, ["Service", "CPU", "Memory", "Pod counts (peak)    "]
                 )
-                table = Table(metrics_table, hAlign="LEFT")
+                table = Table(metrics_table, hAlign="RIGHT")
                 table.setStyle(
                     TableStyle(
                         [
@@ -137,13 +153,14 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
                             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                             ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
                             ("FONTSIZE", (0, 0), (-1, -1), 10),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 0),
                         ]
                     )
                 )
-                elements.append(table)
-                elements.append(Spacer(1, 12))
+                display_images_and_table(region, table, elements)
 
     # Build the PDF document
     doc.build(elements)
     print(f"PDF successfully generated: {pdf_filename}")
+
+
+generate_pdf("./")
