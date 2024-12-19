@@ -1,68 +1,149 @@
+from reportlab.lib.pagesizes import portrait, A4
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import (
+    Table,
+    TableStyle,
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    ListFlowable,
+    Image,
+)
 import os
+from config import SERVICES, REGION_DATA
+import json
 
 
-def generate_pdf(data, output_filename, screenshots=None):
+def create_table(data, column_headers):
+    """Helper function to create a table from the given data."""
+    table_data = [column_headers]  # Add headers at the top
+    for entry in data:
+        row = [value for value in entry.values()]
+        table_data.append(row)
+    return table_data
+
+
+def prepare_table_data(cpu, memory, pod_counts):
+    output = []
+    for service in SERVICES:
+        svc_cpu = next((x for x in cpu if x["name"] == service), None)
+        svc_memory = next((x for x in memory if x["name"] == service), None)
+        svc_pod_count = next((x for x in pod_counts if x["name"] == service), None)
+        output.append(
+            {
+                "name": service,
+                "cpu": svc_cpu["value"],
+                "memory": svc_memory["value"],
+                "pod_count": f"{svc_pod_count['value']} ({svc_pod_count['max']})",
+            }
+        )
+    output.sort(key=lambda x: x["name"])
+    return output
+
+
+def prepare_basic_data(data, styles, elements):
+    header_texts = {
+        "sli": "SLI",
+        "websockets": "Websockets",
+        "duration_over_500ms": "Duration > 500ms",
+        "duration_over_500ms_special": "Duration > 500ms (Special cases)",
+        "http_5x": "HTTP 5xx's",
+        "pod_restarts": "Pod restarts (count)",
+    }
+    # Add basic key-value data (sli, websockets, etc.)
+    for key, header in header_texts.items():
+        if key in data:
+            if key in ["sli", "websockets"] or isinstance(data[key], str):
+                text = data[key]
+                elements.append(
+                    Paragraph(f"<b>{header}:</b> {text}", styles["BodyText"])
+                )
+            else:
+                elements.append(Paragraph(f"<b>{header}:</b>", styles["BodyText"]))
+                if isinstance(data[key][0], str):
+                    list_items = [el for el in data[key]]
+                else:
+                    list_items = [f"{el['name']} ({el['value']})" for el in data[key]]
+                elements.append(
+                    ListFlowable(
+                        [Paragraph(item) for item in list_items],
+                        bulletType="bullet",
+                        start=None,
+                    )
+                )
+
+
+def draw_image(path):
+    f = open(path, "rb")
+    width = 1.5 * inch
+    return Image(f, 2 * width, width)
+
+
+def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
     """
-    Generates a PDF using ReportLab from the provided data.
-
-    Args:
-        data (dict): Dictionary containing report data.
-        output_filename (str): Output PDF file name.
-        screenshots (list): List of screenshot image file paths.
+    Generates a PDF report for the Grafana dashboard data.
+    :param output_dir: Directory containing region subdirectories with JSON files.
+    :param output_file: Name of the generated PDF file.
     """
-    # Define document and styles
-    doc = SimpleDocTemplate(output_filename, pagesize=A4)
-    elements = []  # PDF elements
+    pdf_filename = os.path.join(output_dir, output_file)
+    margin = 0.25 * inch
+    doc = SimpleDocTemplate(
+        pdf_filename,
+        pagesize=portrait(A4),
+        leftMargin=margin,
+        topMargin=margin,
+        rightMargin=margin,
+        bottomMargin=margin,
+    )
     styles = getSampleStyleSheet()
-    title_style = styles["Title"]
-    body_style = styles["BodyText"]
-    space = Spacer(1, 12)
+    elements = []
 
     # Title
-    title = Paragraph("Service Report", title_style)
+    title = Paragraph("<b>Grafana Dashboard Report</b>", styles["Title"])
     elements.append(title)
-    elements.append(space)
+    elements.append(Spacer(1, 12))
 
-    # Add key-value pairs
-    for key, value in data.items():
-        if isinstance(value, list):  # Handle tables
-            elements.append(Paragraph(f"<b>{key.replace('_', ' ').title()}</b>", body_style))
-            table_data = [["Name", "Value", "Max"]] if "max" in str(value) else [["Name", "Value"]]
-            for item in value:
-                row = [item.get("name", ""), item.get("value", "")]
-                if "max" in item:
-                    row.append(item.get("max", ""))
-                table_data.append(row)
+    # Process each region
+    for region in REGION_DATA.keys():
+        json_file = f"{region}/data.json"
 
-            table = Table(table_data)
-            table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("GRID", (0, 0), (-1, -1), 1, colors.black),
-            ]))
-            elements.append(table)
-            elements.append(space)
-        else:  # Handle single values
-            elements.append(Paragraph(f"<b>{key.replace('_', ' ').title()}:</b> {value}", body_style))
-            elements.append(space)
+        if os.path.isfile(json_file):
+            with open(json_file, "r") as f:
+                data = json.load(f)
 
-    # Add screenshots
-    if screenshots:
-        elements.append(Paragraph("<b>Screenshots</b>", title_style))
-        elements.append(space)
-        for image_path in screenshots:
-            if os.path.exists(image_path):
-                img = Image(image_path, width=400, height=200)
-                elements.append(img)
-                elements.append(space)
-            else:
-                elements.append(Paragraph(f"Image not found: {image_path}", body_style))
+            # Add region header
+            region_title = Paragraph(f"<b>Region: {region}</b>", styles["Heading2"])
+            elements.append(region_title)
 
-    # Generate PDF
+            prepare_basic_data(data, styles, elements)
+
+            # Metrics table
+            if "pod_counts" in data and "memory" in data and "cpu" in data:
+                elements.append(Spacer(1, 12))
+                table_data = prepare_table_data(
+                    data["cpu"], data["memory"], data["pod_counts"]
+                )
+                metrics_table = create_table(
+                    table_data, ["Service", "CPU", "Memory", "Pod count (max)"]
+                )
+                table = Table(metrics_table, hAlign="LEFT")
+                table.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.brown),
+                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                            ("FONTSIZE", (0, 0), (-1, -1), 10),
+                            ("BOTTOMPADDING", (0, 0), (-1, 0), 0),
+                        ]
+                    )
+                )
+                elements.append(table)
+                elements.append(Spacer(1, 12))
+
+    # Build the PDF document
     doc.build(elements)
-    print(f"PDF successfully generated: {output_filename}")
+    print(f"PDF successfully generated: {pdf_filename}")

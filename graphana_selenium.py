@@ -3,11 +3,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from pywinauto import Application, Desktop
+from pywinauto import Desktop
 import pyautogui
 import time
 import io
 import os
+import json
 from pdf_generator import generate_pdf
 from PIL import Image
 from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS, PIN, SCREENSHOT_DATA
@@ -205,6 +206,7 @@ def select_services():
 
 
 output = {}
+REGION_OUTPUTS = {}
 try:
     for name, url in REGION_DATA.items():
         region = name
@@ -249,12 +251,16 @@ try:
 
         # Screenshots
         screenshots = take_screenshots()
+        with open(os.path.join(region, "data.json"), "w") as json_file:
+            json.dump(output, json_file, indent=4)
+
+        REGION_OUTPUTS[region] = output
+        print(f"Data collected for {region}")
 
         print(output)
-        # generate_pdf(output, "service_report.pdf", screenshots)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
 finally:
     driver.close()
-    exit()
+    generate_pdf("./", "grafana_dashboard_report.pdf")
