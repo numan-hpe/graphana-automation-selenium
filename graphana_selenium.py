@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from pywinauto import Application, Desktop
+from pywinauto import Desktop
 import pyautogui
 import time
 import io
@@ -19,6 +19,7 @@ options.add_argument("--start-maximized")
 
 driver = webdriver.Chrome(options=options)
 logged_in = False
+
 
 def wait_for_window(title_pattern, timeout=30):
     """
@@ -38,6 +39,7 @@ def wait_for_window(title_pattern, timeout=30):
         time.sleep(1)
     raise Exception(f"Timeout: Window '{title_pattern}' did not appear.")
 
+
 def handle_certificate_selection():
     try:
         # Wait for the dialog to appear (adjust sleep as necessary)
@@ -50,13 +52,14 @@ def handle_certificate_selection():
     except Exception as e:
         print("Error handling certificate dialog:", e)
 
+
 def handle_pin_entry():
     """Handles the Windows Security PIN entry dialog."""
     try:
         window = wait_for_window("Windows Security")
         window.set_focus()
         time.sleep(1)  # Ensure the window is ready
-        
+
         # Enter PIN
         window.child_window(control_type="Edit").type_keys(PIN, with_spaces=True)
         print("PIN entered successfully.")
@@ -67,6 +70,7 @@ def handle_pin_entry():
     except Exception as e:
         print(f"Error handling PIN entry: {e}")
         raise
+
 
 def login_user():
     global logged_in
@@ -254,19 +258,14 @@ try:
         screenshots = take_screenshots()
         with open(os.path.join(region, "data.json"), "w") as json_file:
             json.dump(output, json_file, indent=4)
-        
+
         REGION_OUTPUTS[region] = output
         print(f"Data collected for {region}")
 
         print(output)
-        # Collect all dynamically created region directories
-        region_dirs = [os.path.join(os.getcwd(), region) for region in REGION_DATA.keys()]
-        generate_pdf(region_dirs, "grafana_dashboard_report1.pdf")
-
-        #generate_pdf(output, "service_report.pdf", screenshots)
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
 finally:
     driver.close()
-    exit()
+    generate_pdf("./", "grafana_dashboard_report.pdf")
