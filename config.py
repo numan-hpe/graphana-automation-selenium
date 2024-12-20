@@ -1,5 +1,7 @@
-USER_EMAIL = "numan.naeem@hpe.com"
-PIN = "12121212"
+USER_EMAIL = "pranav-santoshk@hpe.com"
+PIN = "60170678"
+BOT_TOKEN = "Add token here"
+CHANNEL_ID = "C085P82Q4R4"
 REGION_DATA = {
     "ccprodusw2": "https://ccprodusw2-us-west-2.cloudops.compute.cloud.hpe.com/grafana/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
     "ccprodeuc1": "https://ccprodeuc1-eu-central-1.cloudops.compute.cloud.hpe.com/grafana/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",

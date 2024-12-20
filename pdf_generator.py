@@ -16,7 +16,6 @@ import os
 from config import SERVICES, REGION_DATA
 import json
 
-
 def create_table(data, column_headers):
     """Helper function to create a table from the given data."""
     table_data = [column_headers]  # Add headers at the top
@@ -40,7 +39,7 @@ def prepare_table_data(cpu, memory, pod_counts):
                 "pod_count": f"{svc_pod_count['value']}  ({svc_pod_count['max']})",
             }
         )
-    output.sort(key=lambda x: x["name"])
+    # output.sort(key=lambda x: x["name"])
     return output
 
 

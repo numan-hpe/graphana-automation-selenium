@@ -14,6 +14,7 @@ import json
 from pdf_generator import generate_pdf
 from PIL import Image
 from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS, PIN, SCREENSHOT_DATA
+from file_uploader import file_uploader
 
 options = Options()
 options.add_argument("--start-maximized")
@@ -42,6 +43,7 @@ def wait_for_window(title_pattern, timeout=30):
 
 def handle_certificate_selection():
     try:
+        time.sleep(5)
         pyautogui.press("tab", presses=2)
         pyautogui.press("enter")
         print("Certificate selected successfully.")
@@ -54,7 +56,7 @@ def handle_pin_entry():
     try:
         window = wait_for_window("Windows Security")
         window.set_focus()
-        time.sleep(0.5)  # Ensure the window is ready
+        time.sleep(1)  # Ensure the window is ready
 
         # Enter PIN
         window.child_window(control_type="Edit").type_keys(PIN, with_spaces=True)
@@ -86,6 +88,7 @@ def login_user():
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
         time.sleep(8)
         handle_certificate_selection()
+        time.sleep(3)
         handle_pin_entry()
         WebDriverWait(driver, login_timeout).until(
             EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']"))
@@ -273,3 +276,4 @@ except Exception as e:
 finally:
     driver.close()
     generate_pdf("./", "grafana_dashboard_report.pdf")
+    file_uploader()
