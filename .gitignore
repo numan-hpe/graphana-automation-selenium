@@ -1,6 +1,7 @@
 __pycache__
 *.png
 *.pdf
+humio.json
 ccprodane1
 ccprodeuc1
 ccprodusw2

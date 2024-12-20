@@ -59,6 +59,10 @@ def prepare_basic_data(data, styles, elements):
             if key in ["sli", "websockets"] or isinstance(data[key], str):
                 text = data[key]
                 elements.append(Paragraph(f"<b>{header}:</b> {text}", styles["Normal"]))
+                if key == 'websockets':
+                    elements.append(Paragraph(f"<b>Big drops (over 10-15 websockets):</b> None", styles["Normal"]))
+                    elements.append(Paragraph(f"<b>Avg drops:</b> None", styles["Normal"]))
+                    elements.append(Paragraph(f"<b>Zinc deployment:</b> 1", styles["Normal"]))
             else:
                 elements.append(Paragraph(f"<b>{header}:</b>", styles["Normal"]))
                 if isinstance(data[key][0], str):
@@ -124,6 +128,7 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
         )
 
         json_file = f"{region}/data.json"
+        humio_file = f"{region}/humio.json"
 
         if os.path.isfile(json_file):
             with open(json_file, "r") as f:
@@ -157,6 +162,19 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
                     )
                 )
                 display_images_and_table(region, table, elements)
+                
+                if os.path.isfile(humio_file):
+                    elements.append(Paragraph(f"<u>Humio errors</u>", styles["Heading3"]))
+                    with open(humio_file, "r") as f:
+                        humio_data = json.load(f)
+                        humio_headers = {
+                            "files_failures": "File upload failures",
+                            "unknown_errors": "Unknown errors",
+                            "bisbee_errors": "Errors while uploading to Bisbee",
+                        }
+                    for key, value in humio_data.items():
+                        elements.append(Paragraph(f"<b>{humio_headers[key]}:</b> {value}", styles["Normal"]))
+                        
 
     # Build the PDF document
     doc.build(elements)

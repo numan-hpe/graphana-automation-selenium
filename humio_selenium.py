@@ -3,22 +3,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from pywinauto import Application, Desktop
+from pywinauto import Desktop
+import os
+import json
 import pyautogui
 import time
-import io
-import os
 from pdf_generator import generate_pdf
 from PIL import Image
 from config import SERVICES, HUMIO_DATA, USER_EMAIL, HUMIO_HEADINGS, PIN
 
-options = Options()
-options.add_argument("--start-maximized")
-
-driver = webdriver.Chrome(options=options)
 
 logged_in = False
-
+driver = None
 
 def wait_for_window(title_pattern, timeout=30):
     """
@@ -134,26 +130,27 @@ def scroll_to_widget(heading):
     time.sleep(1)
     load_widgets()
 
+def get_humio_data(web_driver):
+    global driver
+    driver = web_driver
+    output = {}
 
-output = {}
+    for region, url in HUMIO_DATA.items():
+        try:
+            driver.get(url)
+            # login_user()
+            time.sleep(10)
 
-for region, url in HUMIO_DATA.items():
-    try:
-        driver.get(url)
-        login_user()
-        time.sleep(5)
+            scroll_to_widget(HUMIO_HEADINGS["files_failures"])
+            output["files_failures"] = get_value(HUMIO_HEADINGS["files_failures"])
 
-        scroll_to_widget(HUMIO_HEADINGS["files_failures"])
-        output["files_failures"] = get_value(HUMIO_HEADINGS["files_failures"])
+            scroll_to_widget(HUMIO_HEADINGS["unknown_errors"])
+            output["unknown_errors"] = get_value(HUMIO_HEADINGS["unknown_errors"])
 
-        scroll_to_widget(HUMIO_HEADINGS["unknown_errors"])
-        output["unknown_errors"] = get_value(HUMIO_HEADINGS["unknown_errors"])
+            scroll_to_widget(HUMIO_HEADINGS["bisbee_errors"])
+            output["bisbee_errors"] = get_value(HUMIO_HEADINGS["bisbee_errors"])
 
-        scroll_to_widget(HUMIO_HEADINGS["bisbee_errors"])
-        output["bisbee_errors"] = get_value(HUMIO_HEADINGS["bisbee_errors"])
-
-        print(output)
-
-    finally:
-        time.sleep(1000)
-        driver.close()
+            with open(os.path.join(region, "humio.json"), "w") as json_file:
+                json.dump(output, json_file, indent=4)
+        except Exception as e:
+            raise e

@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
+from humio_selenium import get_humio_data
 from pywinauto import Desktop
 import pyautogui
 import time
@@ -83,7 +84,7 @@ def login_user():
         ).send_keys(USER_EMAIL)
 
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
-        time.sleep(7)
+        time.sleep(8)
         handle_certificate_selection()
         handle_pin_entry()
         WebDriverWait(driver, login_timeout).until(
@@ -263,6 +264,8 @@ try:
 
         REGION_OUTPUTS[region] = output
         print(f"Data collected for {region}")
+    
+    get_humio_data(driver)
 
 except Exception as e:
     print("Encountered error", e)
