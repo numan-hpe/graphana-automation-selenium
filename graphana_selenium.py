@@ -86,10 +86,10 @@ def login_user():
         ).send_keys(USER_EMAIL)
 
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
-        time.sleep(8)
-        handle_certificate_selection()
         time.sleep(3)
-        handle_pin_entry()
+        # handle_certificate_selection()
+        # time.sleep(3)
+        # handle_pin_entry()
         WebDriverWait(driver, login_timeout).until(
             EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']"))
         ).click()
@@ -268,12 +268,12 @@ try:
         REGION_OUTPUTS[region] = output
         print(f"Data collected for {region}")
     
-    get_humio_data(driver)
+    # get_humio_data(driver)
 
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
 finally:
     driver.close()
-    generate_pdf("./", "grafana_dashboard_report.pdf")
-    file_uploader()
+    generate_pdf("./", "service_monitoring.pdf")
+    # file_uploader()

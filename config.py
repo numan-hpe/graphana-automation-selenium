@@ -1,5 +1,5 @@
-USER_EMAIL = "pranav-santoshk@hpe.com"
-PIN = "60170678"
+USER_EMAIL = "you_email@hpe.com"
+PIN = "your_SSO_PIN" # Add your PIN here and uncomment L90-92 in graphana_selenium.py for auto PIN entry 
 BOT_TOKEN = "Add token here"
 CHANNEL_ID = "C085P82Q4R4"
 REGION_DATA = {

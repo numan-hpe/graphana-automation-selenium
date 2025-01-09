@@ -58,10 +58,10 @@ def prepare_basic_data(data, styles, elements):
             if key in ["sli", "websockets"] or isinstance(data[key], str):
                 text = data[key]
                 elements.append(Paragraph(f"<b>{header}:</b> {text}", styles["Normal"]))
-                if key == 'websockets':
-                    elements.append(Paragraph(f"<b>Big drops (over 10-15 websockets):</b> None", styles["Normal"]))
-                    elements.append(Paragraph(f"<b>Avg drops:</b> None", styles["Normal"]))
-                    elements.append(Paragraph(f"<b>Zinc deployment:</b> 1", styles["Normal"]))
+                # if key == 'websockets':
+                #     elements.append(Paragraph(f"<b>Big drops (over 10-15 websockets):</b> None", styles["Normal"]))
+                #     elements.append(Paragraph(f"<b>Avg drops:</b> None", styles["Normal"]))
+                #     elements.append(Paragraph(f"<b>Zinc deployment:</b> 1", styles["Normal"]))
             else:
                 elements.append(Paragraph(f"<b>{header}:</b>", styles["Normal"]))
                 if isinstance(data[key][0], str):
@@ -96,7 +96,7 @@ def display_images_and_table(region, table, elements):
     return
 
 
-def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
+def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
     """
     Generates a PDF report for the Grafana dashboard data.
     :param output_dir: Directory containing region subdirectories with JSON files.
@@ -116,7 +116,7 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
     elements = []
 
     # Title
-    title = Paragraph("<b>Grafana Dashboard Report</b>", styles["Title"])
+    title = Paragraph("<b>Service Monitoring Report</b>", styles["Title"])
     elements.append(title)
     # elements.append(Spacer(1, 12))
 
@@ -178,6 +178,3 @@ def generate_pdf(output_dir, output_file="grafana_dashboard_report.pdf"):
     # Build the PDF document
     doc.build(elements)
     print(f"PDF successfully generated: {pdf_filename}")
-
-
-generate_pdf("./")
