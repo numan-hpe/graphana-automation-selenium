@@ -118,18 +118,19 @@ def wait_for_widgets_to_load(max_timeout=120):
 
 
 def scroll_to_widget(heading):
-    widget = driver.find_element(
-        By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"
+    widget = WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"))
     )
     driver.execute_script("arguments[0].scrollIntoView();", widget)
-    time.sleep(1)
+    time.sleep(2)
     wait_for_widgets_to_load()
 
 
 def get_value(header):
-    return driver.find_element(
-        By.XPATH, f"//div[contains(@data-testid,'{header}')]//div[@title]"
-    ).text
+    widget = WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, f"//div[contains(@data-testid,'{header}')]//div[@title]"))
+    )
+    return widget.text
 
 
 def take_screenshots():

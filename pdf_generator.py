@@ -27,6 +27,7 @@ def create_table(data, column_headers):
 
 def prepare_table_data(cpu, memory, pod_counts):
     output = []
+    SERVICES.sort()
     for service in SERVICES:
         svc_cpu = next((x for x in cpu if x["name"] == service), None)
         svc_memory = next((x for x in memory if x["name"] == service), None)
