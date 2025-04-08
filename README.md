@@ -8,5 +8,5 @@ A simple selenium script that generates service monitoring reports from Graphana
   - [Optional] Set BOT_TOKEN and CHANNEL_ID with your Slack Bot Token/Channel ID for auto-publishing the report to the Slack channel (disabled by default)
 - Run `python3 graphana_selenium.py`
 - Wait for the initial login to complete where you have to select the browser certificate and enter your SSO PIN.
-- Grab a coffee / take a break / focus on some other work 🙂
-- The Service Monitoring report will be generated and saved in the repo dir 
+- Take a well-deserved coffee break ☕
+- The Service Monitoring report will be generated and saved in the `reports` dir 
