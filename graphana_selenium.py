@@ -5,6 +5,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from humio_selenium import get_humio_data
+from datetime import date
+import shutil
 from pywinauto import Desktop
 import pyautogui
 import time
@@ -134,7 +136,6 @@ def get_value(header):
 
 
 def take_screenshots():
-    os.makedirs(region, exist_ok=True)
     paths = []
 
     for name, data in SCREENSHOT_DATA.items():
@@ -222,6 +223,10 @@ REGION_OUTPUTS = {}
 try:
     for name, url in REGION_DATA.items():
         region = name
+        # Clear folder contents
+        if os.path.exists(region):
+            shutil.rmtree(region)
+        os.makedirs(region, exist_ok=True)
         print(f"Opening {region} Grafana dashboard...")
         driver.get(url)
 
@@ -269,12 +274,12 @@ try:
         REGION_OUTPUTS[region] = output
         print(f"Data collected for {region}")
     
-    # get_humio_data(driver)
+    today = date.today()
+    os.makedirs('reports', exist_ok=True)
+    generate_pdf("./reports/", f"service_monitoring_{today.day}_{today.month}.pdf")
 
 except Exception as e:
     print("Encountered error", e)
     print(e.with_traceback)
 finally:
     driver.close()
-    generate_pdf("./", "service_monitoring.pdf")
-    # file_uploader()

@@ -119,7 +119,6 @@ def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
     # Title
     title = Paragraph("<b>Service Monitoring Report</b>", styles["Title"])
     elements.append(title)
-    # elements.append(Spacer(1, 12))
 
     # Process each region
     for region in REGION_DATA.keys():
@@ -174,7 +173,7 @@ def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
                         }
                     for key, value in humio_data.items():
                         elements.append(Paragraph(f"<b>{humio_headers[key]}:</b> {value}", styles["Normal"]))
-                        
+
 
     # Build the PDF document
     doc.build(elements)
