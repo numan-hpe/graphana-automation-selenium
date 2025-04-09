@@ -110,7 +110,7 @@ def login_user():
             raise Exception
 
 
-def wait_for_widgets_to_load(max_timeout=120):
+def wait_for_widgets_to_load(max_timeout=180):
     WebDriverWait(driver, max_timeout).until(
         lambda driver: len(
             driver.find_elements(By.XPATH, "//div[@aria-label='Panel loading bar']")
@@ -120,16 +120,16 @@ def wait_for_widgets_to_load(max_timeout=120):
 
 
 def scroll_to_widget(heading):
-    widget = WebDriverWait(driver, 10).until(
+    widget = WebDriverWait(driver, 60).until(
         EC.visibility_of_element_located((By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"))
     )
     driver.execute_script("arguments[0].scrollIntoView();", widget)
-    time.sleep(2)
+    time.sleep(3)
     wait_for_widgets_to_load()
 
 
 def get_value(header):
-    widget = WebDriverWait(driver, 10).until(
+    widget = WebDriverWait(driver, 60).until(
         EC.visibility_of_element_located((By.XPATH, f"//div[contains(@data-testid,'{header}')]//div[@title]"))
     )
     return widget.text
