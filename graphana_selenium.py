@@ -78,8 +78,8 @@ def login_user():
     start_time = time.time()  # Record the start time
     login_timeout = 180  # Maximum time to wait for login (in seconds)
 
-    WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable((By.XPATH, "//a[@href='login/generic_oauth']"))
+    WebDriverWait(driver, 30).until(
+        EC.element_to_be_clickable((By.XPATH, "//a[@href='login/azuread']"))
     ).click()
 
     if not logged_in:
@@ -120,17 +120,23 @@ def wait_for_widgets_to_load(max_timeout=180):
 
 
 def scroll_to_widget(heading):
-    widget = WebDriverWait(driver, 60).until(
-        EC.visibility_of_element_located((By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"))
-    )
+    attempts = 0
+    page = driver.find_element(By.ID, "page-scrollbar")
+    while attempts < 10:
+        elements = driver.find_elements(By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]")
+        if elements:
+            break
+        driver.execute_script("arguments[0].scrollTop = arguments[0].scrollTop + 300", page)
+        time.sleep(1)
+        attempts += 1
+    widget = driver.find_element(By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]")
     driver.execute_script("arguments[0].scrollIntoView();", widget)
-    time.sleep(3)
     wait_for_widgets_to_load()
 
 
 def get_value(header):
     widget = WebDriverWait(driver, 60).until(
-        EC.visibility_of_element_located((By.XPATH, f"//div[contains(@data-testid,'{header}')]//div[@title]"))
+        EC.visibility_of_element_located((By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]"))
     )
     return widget.text
 
@@ -140,7 +146,7 @@ def take_screenshots():
 
     for name, data in SCREENSHOT_DATA.items():
         xpath = (
-            f"//div[contains(@data-testid,'{data['heading']}')]"
+            f"//section[contains(@data-testid,'{data['heading']}')]"
             if data["type"] == "small"
             else f"//div[@data-panelid and .//span[contains(text(), '{data['heading']}')]]/following-sibling::div[2]"
         )

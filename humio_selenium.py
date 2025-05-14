@@ -73,8 +73,8 @@ def login_user():
 
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
         time.sleep(5)
-        handle_certificate_selection()
-        handle_pin_entry()
+        # handle_certificate_selection()
+        # handle_pin_entry()
         WebDriverWait(driver, login_timeout).until(
             EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']"))
         ).click()
