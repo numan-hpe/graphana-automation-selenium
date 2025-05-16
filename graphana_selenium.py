@@ -6,13 +6,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from humio_selenium import get_humio_data
 from datetime import date
-import shutil
 from pywinauto import Desktop
 import pyautogui
 import time
 import io
 import os
 import json
+import stat
 from pdf_generator import generate_pdf
 from PIL import Image
 from config import SERVICES, REGION_DATA, USER_EMAIL, HEADINGS, PIN, SCREENSHOT_DATA
@@ -123,20 +123,28 @@ def scroll_to_widget(heading):
     attempts = 0
     page = driver.find_element(By.ID, "page-scrollbar")
     while attempts < 10:
-        elements = driver.find_elements(By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]")
+        elements = driver.find_elements(
+            By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"
+        )
         if elements:
             break
-        driver.execute_script("arguments[0].scrollTop = arguments[0].scrollTop + 300", page)
+        driver.execute_script(
+            "arguments[0].scrollTop = arguments[0].scrollTop + 300", page
+        )
         time.sleep(1)
         attempts += 1
-    widget = driver.find_element(By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]")
+    widget = driver.find_element(
+        By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"
+    )
     driver.execute_script("arguments[0].scrollIntoView();", widget)
     wait_for_widgets_to_load()
 
 
 def get_value(header):
     widget = WebDriverWait(driver, 60).until(
-        EC.visibility_of_element_located((By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]"))
+        EC.visibility_of_element_located(
+            (By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]")
+        )
     )
     return widget.text
 
@@ -231,8 +239,13 @@ try:
         region = name
         # Clear folder contents
         if os.path.exists(region):
-            shutil.rmtree(region)
-        os.makedirs(region, exist_ok=True)
+            for root, dirs, files in os.walk(region, topdown=False):
+                for name in files:
+                    filename = os.path.join(root, name)
+                    os.chmod(filename, stat.S_IWRITE)
+                    os.remove(filename)
+        else:
+            os.makedirs(region, exist_ok=True)
         print(f"Opening {region} Grafana dashboard...")
         driver.get(url)
 
@@ -279,10 +292,12 @@ try:
 
         REGION_OUTPUTS[region] = output
         print(f"Data collected for {region}")
-    
-    today = date.today()
-    os.makedirs('reports', exist_ok=True)
-    generate_pdf("./reports/", f"service_monitoring_{today.day}_{today.month}.pdf")
+
+    formatted_datetime = (
+        date.today().strftime("%Y-%m-%d") + "_" + time.strftime("%H-%M")
+    )
+    os.makedirs("reports", exist_ok=True)
+    generate_pdf("reports", f"service_monitoring_{formatted_datetime}.pdf")
 
 except Exception as e:
     print("Encountered error", e)

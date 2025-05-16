@@ -80,12 +80,24 @@ def prepare_basic_data(data, styles, elements):
 
 
 def display_images_and_table(region, table, elements):
-    width = 3.782 * inch
+    styles = getSampleStyleSheet()
+    styles["Normal"].textColor = colors.purple
+    styles["Normal"].fontSize = 12
+    width = 3.8 * inch
     height = width / 2
-    elements.append(Image(f"{region}/websockets.png", width, height, hAlign="LEFT"))
-    elements.append(Spacer(0, -(height - 5)))
+    elements.append(
+        Image(f"{region}/websockets.png", width, height - 10, hAlign="LEFT")
+    )
+    elements.append(Spacer(0, -(height - 10)))
     elements.append(table)
-    elements.append(Spacer(0, height - 3))
+    elements.append(Spacer(0, 8))
+    elements.append(
+        Paragraph(
+            f"<b>CPU Utilization{'&nbsp;'*57}Memory Utilization</b>",
+            style=styles["Normal"],
+        )
+    )
+    elements.append(Spacer(0, height - 7))
     elements.append(
         Paragraph(
             f"""
@@ -161,9 +173,11 @@ def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
                     )
                 )
                 display_images_and_table(region, table, elements)
-                
+
                 if os.path.isfile(humio_file):
-                    elements.append(Paragraph(f"<u>Humio errors</u>", styles["Heading3"]))
+                    elements.append(
+                        Paragraph(f"<u>Humio errors</u>", styles["Heading3"])
+                    )
                     with open(humio_file, "r") as f:
                         humio_data = json.load(f)
                         humio_headers = {
@@ -172,8 +186,12 @@ def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
                             "bisbee_errors": "Errors while uploading to Bisbee",
                         }
                     for key, value in humio_data.items():
-                        elements.append(Paragraph(f"<b>{humio_headers[key]}:</b> {value}", styles["Normal"]))
-
+                        elements.append(
+                            Paragraph(
+                                f"<b>{humio_headers[key]}:</b> {value}",
+                                styles["Normal"],
+                            )
+                        )
 
     # Build the PDF document
     doc.build(elements)
