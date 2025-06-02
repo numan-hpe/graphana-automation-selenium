@@ -229,8 +229,12 @@ def select_services():
         if option.text in region_services:
             option.click()
 
-    driver.find_element(By.TAG_NAME, "html").click()
+    driver.find_element(By.ID, "pageContent").click()
 
+    try:
+        driver.find_element(By.ID, "dock-menu-button").click()
+    except NoSuchElementException:
+        pass
 
 output = {}
 REGION_OUTPUTS = {}
