@@ -16,32 +16,32 @@ import os
 from config import SERVICES, REGION_DATA
 import json
 
-def create_table(data, column_headers):
-    """Helper function to create a table from the given data."""
-    table_data = [column_headers]  # Add headers at the top
-    for entry in data:
-        row = [value for value in entry.values()]
-        table_data.append(row)
-    return table_data
+# def create_table(data, column_headers):
+#     """Helper function to create a table from the given data."""
+#     table_data = [column_headers]  # Add headers at the top
+#     for entry in data:
+#         row = [value for value in entry.values()]
+#         table_data.append(row)
+#     return table_data
 
 
-def prepare_table_data(cpu, memory, pod_counts):
-    output = []
-    SERVICES.sort()
-    for service in SERVICES:
-        svc_cpu = next((x for x in cpu if x["name"] == service), None)
-        svc_memory = next((x for x in memory if x["name"] == service), None)
-        svc_pod_count = next((x for x in pod_counts if x["name"] == service), None)
-        output.append(
-            {
-                "name": service,
-                "cpu": svc_cpu["value"],
-                "memory": svc_memory["value"],
-                "pod_count": f"{svc_pod_count['value']}  ({svc_pod_count['max']})",
-            }
-        )
-    # output.sort(key=lambda x: x["name"])
-    return output
+# def prepare_table_data(cpu, memory, pod_counts):
+#     output = []
+#     SERVICES.sort()
+#     for service in SERVICES:
+#         svc_cpu = next((x for x in cpu if x["name"] == service), None)
+#         svc_memory = next((x for x in memory if x["name"] == service), None)
+#         svc_pod_count = next((x for x in pod_counts if x["name"] == service), None)
+#         output.append(
+#             {
+#                 "name": service,
+#                 "cpu": svc_cpu["value"],
+#                 "memory": svc_memory["value"],
+#                 "pod_count": f"{svc_pod_count['value']}  ({svc_pod_count['max']})",
+#             }
+#         )
+#     # output.sort(key=lambda x: x["name"])
+#     return output
 
 
 def prepare_basic_data(data, styles, elements):
@@ -153,26 +153,26 @@ def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
 
             # Metrics table
             if "pod_counts" in data and "memory" in data and "cpu" in data:
-                elements.append(Spacer(1, 12))
-                table_data = prepare_table_data(
-                    data["cpu"], data["memory"], data["pod_counts"]
-                )
-                metrics_table = create_table(
-                    table_data, ["Service", "CPU", "Memory", "Pod counts (peak)    "]
-                )
-                table = Table(metrics_table, hAlign="RIGHT")
-                table.setStyle(
-                    TableStyle(
-                        [
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.brown),
-                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                            ("FONTSIZE", (0, 0), (-1, -1), 10),
-                        ]
-                    )
-                )
-                display_images_and_table(region, table, elements)
+            #     elements.append(Spacer(1, 12))
+            #     # table_data = prepare_table_data(
+            #     #     data["cpu"], data["memory"], data["pod_counts"]
+            #     # )
+            #     # metrics_table = create_table(
+            #     #     table_data, ["Service", "CPU", "Memory", "Pod counts (peak)    "]
+            #     # )
+            #     # table = Table(metrics_table, hAlign="RIGHT")
+            #     table.setStyle(
+            #         TableStyle(
+            #             [
+            #                 ("BACKGROUND", (0, 0), (-1, 0), colors.brown),
+            #                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            #                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            #                 ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            #                 ("FONTSIZE", (0, 0), (-1, -1), 10),
+            #             ]
+            #         )
+            #     )
+            #     display_images_and_table(region, table, elements)
 
                 if os.path.isfile(humio_file):
                     elements.append(
