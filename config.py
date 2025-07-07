@@ -2,16 +2,24 @@ USER_EMAIL = "you_email@hpe.com"
 PIN = "your_SSO_PIN" # Add your PIN here and uncomment L90-92 in graphana_selenium.py for auto PIN entry 
 BOT_TOKEN = "Add token here"
 CHANNEL_ID = "C085P82Q4R4"
+
+SERVICES = ["keysmith", "charger", "charger-delta", "zinc-app", "roundup", "neptune"]
+def get_services_string(region):
+    services = [
+        f"var-rugbyservice={region}-{service}"
+        for service in SERVICES
+    ]
+    return "&".join(services)
+
 REGION_DATA = {
-    "ccprodusw2": "https://ccprodusw2-us-west-2.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
-    "ccprodeuc1": "https://ccprodeuc1-eu-central-1.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
-    "ccprodane1": "https://ccprodane1-ap-northeast-1.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
-    "pre-prod": "https://ccpreusw2-us-west-2.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now",
+    "ccprodusw2": "https://ccprodusw2-us-west-2.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now&" + get_services_string("ccprodusw2"),
+    "ccprodeuc1": "https://ccprodeuc1-eu-central-1.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now&" + get_services_string("ccprodeuc1"),
+    "ccprodane1": "https://ccprodane1-ap-northeast-1.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now&" + get_services_string("ccprodane1"),
+    "pre-prod": "https://ccpreusw2-us-west-2.cloudops.compute.cloud.hpe.com/tenant-monitoring/d/uid_chk_eng_lght/rugby-daily-check-engine-light?orgId=1&from=now-24h&to=now&" + get_services_string("pre-prod"),
 }
 HUMIO_DATA = {
     "ccprodusw2": "https://ccprodusw2-us-west-2.cloudops.compute.cloud.hpe.com/logs/computecentral/dashboards/Data%20Ingestion%20to%20Sustainability%20Insight%20Center?dashboardId=OEhGElYomuJaOVTfMuqr49OZgHkiHBOz&fullscreen=false&sharedTime=true&start=1d&updateFrequency=never"
 }
-SERVICES = ["keysmith", "charger", "charger-delta", "zinc-app", "roundup", "neptune"]
 HEADINGS = {
     "sli": "Latency, Error-Rate, Availability Combined",
     "websockets": "Number of --currently connected-- websocket connections",
