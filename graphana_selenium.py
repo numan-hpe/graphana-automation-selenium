@@ -121,22 +121,28 @@ def wait_for_widgets_to_load(max_timeout=180):
 
 def scroll_to_widget(heading):
     attempts = 0
-    page = driver.find_element(By.ID, "page-scrollbar")
+    try:
+        page = driver.find_element(By.ID, "page-scrollbar")
+    except NoSuchElementException:
+        page = None
     while attempts < 10:
         elements = driver.find_elements(
-            By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"
+            By.XPATH, f"//*[contains(text(), '{heading}')]"
         )
         if elements:
             break
-        driver.execute_script(
-            "arguments[0].scrollTop = arguments[0].scrollTop + 300", page
-        )
+        if page:
+            driver.execute_script(
+                "arguments[0].scrollTop = arguments[0].scrollTop + 300", page
+            )
+        else:
+            driver.execute_script("window.scrollBy(0, 300)")
         time.sleep(1)
         attempts += 1
     widget = driver.find_element(
-        By.XPATH, f"//div[@data-panelid]//*[contains(text(), '{heading}')]"
+        By.XPATH, f"//*[contains(text(), '{heading}')]"
     )
-    driver.execute_script("arguments[0].scrollIntoView();", widget)
+    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", widget)
     wait_for_widgets_to_load()
 
 
@@ -156,8 +162,9 @@ def take_screenshots():
         xpath = (
             f"//section[contains(@data-testid,'{data['heading']}')]"
             if data["type"] == "small"
-            else f"//div[@data-panelid and .//span[contains(text(), '{data['heading']}')]]/following-sibling::div[2]"
+            else f"//div[(@data-griditem-key or @data-panelid) and .//span[contains(text(), '{data['heading']}')]]/following-sibling::div[2]"
         )
+        scroll_to_widget(data["heading"])
         img_binary = driver.find_element(By.XPATH, xpath).screenshot_as_png
         img = Image.open(io.BytesIO(img_binary))
         filename = f"{region}/{name}"
@@ -168,12 +175,7 @@ def take_screenshots():
 
 
 def get_table_data(heading, two_cols=False, three_cols=False):
-    table_xpath = f"//div[@data-panelid and .//span[contains(text(), '{heading}')]]/following-sibling::div[2]//table"
-    # section = driver.find_element(By.XPATH, table_xpath)
-    # if section.text == "No data":
-    #     # Table doesn't exist
-    #     return "No data"
-    # table_xpath += "//table"
+    table_xpath = f"//div[(@data-griditem-key or @data-panelid) and .//span[contains(text(), '{heading}')]]/following-sibling::div[2]//table"
     try:
         name_header = driver.find_element(By.XPATH, f"{table_xpath}//th[@title='name']")
         name_header.click()
@@ -219,25 +221,11 @@ def get_table_data(heading, two_cols=False, three_cols=False):
         return data
 
 
-def select_services():
-    WebDriverWait(driver, 30).until(
-        EC.visibility_of_element_located((By.ID, "var-rugbyservice"))
-    ).click()
-
-    dropdown = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.ID, "options-rugbyservice"))
-    )
-
-    options = dropdown.find_elements(By.TAG_NAME, "li")
-    region_services = [f"{region}-{service}" for service in SERVICES]
-    for option in options:
-        if option.text in region_services:
-            option.click()
-
-    driver.find_element(By.ID, "pageContent").click()
-
+def close_menu():
     try:
-        driver.find_element(By.ID, "dock-menu-button").click()
+        WebDriverWait(driver, 30).until(
+            EC.visibility_of_element_located((By.ID, "dock-menu-button"))
+        ).click()
     except NoSuchElementException:
         pass
 
@@ -259,10 +247,9 @@ try:
         driver.get(url)
 
         login_user()
-
-        select_services()
-
         time.sleep(5)
+
+        close_menu()
 
         # SLI
         wait_for_widgets_to_load()
