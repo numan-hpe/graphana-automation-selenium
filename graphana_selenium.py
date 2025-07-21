@@ -98,7 +98,7 @@ def login_user():
 
         while time.time() - start_time < login_timeout:
             current_url = driver.current_url
-            if "rugby-daily-check-engine-light" in current_url:
+            if "tenant-monitoring/d/" in current_url:
                 print("Dashboard loaded successfully!")
                 logged_in = True
                 break
@@ -253,33 +253,17 @@ try:
 
         # SLI
         wait_for_widgets_to_load()
-        output["sli"] = get_value(HEADINGS["sli"])
+        for key,heading in HEADINGS.items():
+            scroll_to_widget(heading)
+            output[key] = get_value(heading)
+
         # # Websockets
         # scroll_to_widget(HEADINGS["websockets"])
         # output["websockets"] = get_value(HEADINGS["websockets"])
-        # # duration > 500ms
-        # scroll_to_widget(HEADINGS["duration_over_500ms"])
-        # output["duration_over_500ms"] = get_table_data(HEADINGS["duration_over_500ms"])
-        # # duration > 500ms - special cases
-        # scroll_to_widget(HEADINGS["duration_over_500ms_special"])
-        # output["duration_over_500ms_special"] = get_table_data(
-        #     HEADINGS["duration_over_500ms_special"]
-        # )
-        # # HTTP 5x
-        # scroll_to_widget(HEADINGS["http_5x"])
-        # output["http_5x"] = get_table_data(HEADINGS["http_5x"])
+
         # # Pod restarts
         # scroll_to_widget(HEADINGS["pod_restarts"])
         # output["pod_restarts"] = get_table_data(HEADINGS["pod_restarts"], two_cols=True)
-        # # Pod counts
-        # scroll_to_widget(HEADINGS["pod_counts"])
-        # output["pod_counts"] = get_table_data(HEADINGS["pod_counts"], three_cols=True)
-        # # Memory utilization
-        # scroll_to_widget(HEADINGS["memory"])
-        # output["memory"] = get_table_data(HEADINGS["memory"], two_cols=True)
-        # # CPU utilization
-        # scroll_to_widget(HEADINGS["cpu"])
-        # output["cpu"] = get_table_data(HEADINGS["cpu"], two_cols=True)
 
         # # Screenshots
         # screenshots = take_screenshots()

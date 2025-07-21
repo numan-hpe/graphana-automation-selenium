@@ -13,7 +13,7 @@ from reportlab.platypus import (
     HRFlowable,
 )
 import os
-from config import SERVICES, REGION_DATA
+from config import HEADINGS, REGION_DATA
 import json
 
 # def create_table(data, column_headers):
@@ -45,37 +45,11 @@ import json
 
 
 def prepare_basic_data(data, styles, elements):
-    header_texts = {
-        "sli": "SLI",
-        "websockets": "Websockets",
-        "duration_over_500ms": "Duration > 500ms",
-        "duration_over_500ms_special": "Duration > 500ms (Special cases)",
-        "http_5x": "HTTP 5xx's",
-        "pod_restarts": "Pod restarts (count)",
-    }
     # Add basic key-value data (sli, websockets, etc.)
-    for key, header in header_texts.items():
+    for key, header in HEADINGS.items():
         if key in data:
-            if key in ["sli", "websockets"] or isinstance(data[key], str):
-                text = data[key]
-                elements.append(Paragraph(f"<b>{header}:</b> {text}", styles["Normal"]))
-                # if key == 'websockets':
-                #     elements.append(Paragraph(f"<b>Big drops (over 10-15 websockets):</b> None", styles["Normal"]))
-                #     elements.append(Paragraph(f"<b>Avg drops:</b> None", styles["Normal"]))
-                #     elements.append(Paragraph(f"<b>Zinc deployment:</b> 1", styles["Normal"]))
-            else:
-                elements.append(Paragraph(f"<b>{header}:</b>", styles["Normal"]))
-                if isinstance(data[key][0], str):
-                    list_items = [el for el in data[key]]
-                else:
-                    list_items = [f"{el['name']} ({el['value']})" for el in data[key]]
-                elements.append(
-                    ListFlowable(
-                        [Paragraph(item) for item in list_items],
-                        bulletType="bullet",
-                        start=None,
-                    )
-                )
+            text = data[key]
+            elements.append(Paragraph(f"<b>{header}:</b> {text}", styles["Normal"]))
             elements.append(Spacer(0, 2))
 
 
@@ -139,7 +113,6 @@ def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
         )
 
         json_file = f"{region}/data.json"
-        humio_file = f"{region}/humio.json"
 
         if os.path.isfile(json_file):
             with open(json_file, "r") as f:
@@ -150,48 +123,6 @@ def generate_pdf(output_dir, output_file="service_monitoring.pdf"):
             elements.append(region_title)
 
             prepare_basic_data(data, styles, elements)
-
-            # Metrics table
-            if "pod_counts" in data and "memory" in data and "cpu" in data:
-            #     elements.append(Spacer(1, 12))
-            #     # table_data = prepare_table_data(
-            #     #     data["cpu"], data["memory"], data["pod_counts"]
-            #     # )
-            #     # metrics_table = create_table(
-            #     #     table_data, ["Service", "CPU", "Memory", "Pod counts (peak)    "]
-            #     # )
-            #     # table = Table(metrics_table, hAlign="RIGHT")
-            #     table.setStyle(
-            #         TableStyle(
-            #             [
-            #                 ("BACKGROUND", (0, 0), (-1, 0), colors.brown),
-            #                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-            #                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-            #                 ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-            #                 ("FONTSIZE", (0, 0), (-1, -1), 10),
-            #             ]
-            #         )
-            #     )
-            #     display_images_and_table(region, table, elements)
-
-                if os.path.isfile(humio_file):
-                    elements.append(
-                        Paragraph(f"<u>Humio errors</u>", styles["Heading3"])
-                    )
-                    with open(humio_file, "r") as f:
-                        humio_data = json.load(f)
-                        humio_headers = {
-                            "files_failures": "File upload failures",
-                            "unknown_errors": "Unknown errors",
-                            "bisbee_errors": "Errors while uploading to Bisbee",
-                        }
-                    for key, value in humio_data.items():
-                        elements.append(
-                            Paragraph(
-                                f"<b>{humio_headers[key]}:</b> {value}",
-                                styles["Normal"],
-                            )
-                        )
 
     # Build the PDF document
     doc.build(elements)
