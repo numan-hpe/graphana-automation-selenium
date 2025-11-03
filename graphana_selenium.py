@@ -111,6 +111,7 @@ def login_user():
 
 
 def wait_for_widgets_to_load(max_timeout=180):
+    expand_all_tabs()
     WebDriverWait(driver, max_timeout).until(
         lambda driver: len(
             driver.find_elements(By.XPATH, "//div[@aria-label='Panel loading bar']")
@@ -229,6 +230,17 @@ def close_menu():
     except NoSuchElementException:
         pass
 
+def expand_all_tabs():
+    try:
+        tabs = driver.find_elements(By.XPATH, "//*[@aria-label='Expand row']")
+        for tab in tabs:
+            print("Expanding tab: " + tab.text)
+            tab.click()
+            time.sleep(1)
+    except NoSuchElementException:
+        pass
+
+
 output = {}
 REGION_OUTPUTS = {}
 try:
@@ -260,11 +272,6 @@ try:
         # duration > 500ms
         scroll_to_widget(HEADINGS["duration_over_500ms"])
         output["duration_over_500ms"] = get_table_data(HEADINGS["duration_over_500ms"])
-        # duration > 500ms - special cases
-        scroll_to_widget(HEADINGS["duration_over_500ms_special"])
-        output["duration_over_500ms_special"] = get_table_data(
-            HEADINGS["duration_over_500ms_special"]
-        )
         # HTTP 5x
         scroll_to_widget(HEADINGS["http_5x"])
         output["http_5x"] = get_table_data(HEADINGS["http_5x"])

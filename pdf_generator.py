@@ -49,7 +49,6 @@ def prepare_basic_data(data, styles, elements):
         "sli": "SLI",
         "websockets": "Websockets",
         "duration_over_500ms": "Duration > 500ms",
-        "duration_over_500ms_special": "Duration > 500ms (Special cases)",
         "http_5x": "HTTP 5xx's",
         "pod_restarts": "Pod restarts (count)",
     }

@@ -24,7 +24,7 @@ HEADINGS = {
     "sli": "Latency, Error-Rate, Availability Combined",
     "websockets": "Number of --currently connected-- websocket connections",
     "duration_over_500ms": "Durations > 500ms  (Click Data Points for more info)",
-    "duration_over_500ms_special": "Durations > 500ms  - Special Cases   (Click Data Points for more info)",
+    # "duration_over_500ms_special": "Durations > 500ms  - Special Cases   (Click Data Points for more info)",
     "http_5x": "HTTP 5x responses",
     "pod_restarts": "Pod Restarts",
     "pod_counts": "Pod Counts over time",
