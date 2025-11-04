@@ -138,6 +138,7 @@ def scroll_to_widget(heading):
             )
         else:
             driver.execute_script("window.scrollBy(0, 300)")
+        expand_all_tabs()    
         time.sleep(1)
         attempts += 1
     widget = driver.find_element(
@@ -237,7 +238,7 @@ def expand_all_tabs():
             print("Expanding tab: " + tab.text)
             tab.click()
             time.sleep(1)
-    except NoSuchElementException:
+    except Exception:
         pass
 
 
