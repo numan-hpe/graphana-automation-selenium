@@ -120,15 +120,16 @@ def wait_for_widgets_to_load(max_timeout=180):
     )
 
 
-def scroll_to_widget(heading):
+def scroll_to_widget(heading=None, xpath=None):
+    xpath = xpath or f"//*[contains(text(), '{heading}')]"
     attempts = 0
     try:
         page = driver.find_element(By.ID, "page-scrollbar")
     except NoSuchElementException:
         page = None
-    while attempts < 10:
+    while attempts < 20:
         elements = driver.find_elements(
-            By.XPATH, f"//*[contains(text(), '{heading}')]"
+            By.XPATH, xpath
         )
         if elements:
             break
@@ -142,18 +143,32 @@ def scroll_to_widget(heading):
         time.sleep(1)
         attempts += 1
     widget = driver.find_element(
-        By.XPATH, f"//*[contains(text(), '{heading}')]"
+        By.XPATH, xpath
     )
     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", widget)
+    if page:
+        driver.execute_script(
+            "arguments[0].scrollTop = arguments[0].scrollTop - 100", page
+        )
+    else:
+        driver.execute_script("window.scrollBy(0, -100)")
+    time.sleep(1)
     wait_for_widgets_to_load()
 
 
-def get_value(header):
-    widget = WebDriverWait(driver, 60).until(
-        EC.visibility_of_element_located(
-            (By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]")
+def get_value(header, region=None):
+    if header == HEADINGS["websockets"] and region =="pre-prod":
+        widget = WebDriverWait(driver, 60).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, f"//section[contains(@data-testid,'{header}')]//span")
+            )
         )
-    )
+    else:
+        widget = WebDriverWait(driver, 60).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]")
+            )
+        )
     return widget.text
 
 
@@ -166,7 +181,7 @@ def take_screenshots():
             if data["type"] == "small"
             else f"//div[(@data-griditem-key or @data-panelid) and .//span[contains(text(), '{data['heading']}')]]/following-sibling::div[2]"
         )
-        scroll_to_widget(data["heading"])
+        scroll_to_widget(xpath=xpath)
         img_binary = driver.find_element(By.XPATH, xpath).screenshot_as_png
         img = Image.open(io.BytesIO(img_binary))
         filename = f"{region}/{name}"
@@ -245,8 +260,7 @@ def expand_all_tabs():
 output = {}
 REGION_OUTPUTS = {}
 try:
-    for name, url in REGION_DATA.items():
-        region = name
+    for region, url in REGION_DATA.items():
         # Clear folder contents
         if os.path.exists(region):
             for root, dirs, files in os.walk(region, topdown=False):
