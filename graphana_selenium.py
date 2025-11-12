@@ -157,18 +157,14 @@ def scroll_to_widget(heading=None, xpath=None):
 
 
 def get_value(header, region=None):
+    xpath = f"//section[contains(@data-testid,'{header}')]//div[@title]"
     if header == HEADINGS["websockets"] and region =="pre-prod":
-        widget = WebDriverWait(driver, 60).until(
-            EC.visibility_of_element_located(
-                (By.XPATH, f"//section[contains(@data-testid,'{header}')]//span")
-            )
+        xpath = f"(//section[contains(@data-testid,'{header}')]//span)[1]"
+    widget = WebDriverWait(driver, 60).until(
+        EC.visibility_of_element_located(
+            (By.XPATH, xpath)
         )
-    else:
-        widget = WebDriverWait(driver, 60).until(
-            EC.visibility_of_element_located(
-                (By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]")
-            )
-        )
+    )
     return widget.text
 
 
@@ -283,7 +279,7 @@ try:
         output["sli"] = get_value(HEADINGS["sli"])
         # Websockets
         scroll_to_widget(HEADINGS["websockets"])
-        output["websockets"] = get_value(HEADINGS["websockets"])
+        output["websockets"] = get_value(HEADINGS["websockets"], region)
         # duration > 500ms
         scroll_to_widget(HEADINGS["duration_over_500ms"])
         output["duration_over_500ms"] = get_table_data(HEADINGS["duration_over_500ms"])
