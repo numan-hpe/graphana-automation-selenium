@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from humio_selenium import get_humio_data
 from datetime import date
 from pywinauto import Desktop
@@ -23,6 +23,8 @@ options.add_argument("--start-maximized")
 # options.add_argument("--headless")
 
 driver = webdriver.Chrome(options=options)
+driver.set_page_load_timeout(240)
+driver.command_executor._client_config.timeout = 300
 logged_in = False
 
 
@@ -110,7 +112,28 @@ def login_user():
             raise Exception
 
 
-def wait_for_widgets_to_load(max_timeout=180):
+def safe_get(url, attempts=2):
+    """Navigate to a URL with one retry and driver restart if needed."""
+    global driver, logged_in
+    for i in range(attempts):
+        try:
+            driver.get(url)
+            return
+        except Exception as e:
+            print(f"Navigation attempt {i + 1} failed: {e}")
+            if i == attempts - 1:
+                raise
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            driver = webdriver.Chrome(options=options)
+            driver.set_page_load_timeout(240)
+            driver.command_executor._client_config.timeout = 300
+            logged_in = False
+
+
+def wait_for_widgets_to_load(max_timeout=60):
     expand_all_tabs()
     WebDriverWait(driver, max_timeout).until(
         lambda driver: len(
@@ -149,25 +172,38 @@ def scroll_to_widget(heading):
 
 
 def get_value(header):
-    widget = WebDriverWait(driver, 60).until(
-        EC.visibility_of_element_located(
-            (By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]")
+    try:
+        widget = WebDriverWait(driver, 60).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, f"//section[contains(@data-testid,'{header}')]//div[@title]")
+            )
         )
-    )
-    return widget.text
+        return widget.text
+    except Exception as e:
+        print(f"Could not get value for {header}: {e}")
+        return "N/A"
 
 
 def take_screenshots():
     paths = []
 
     for name, data in SCREENSHOT_DATA.items():
+        # Scroll to widget first
+        scroll_to_widget(data["heading"])
+        time.sleep(1)  # Wait for graph to fully render
+        
         xpath = (
             f"//section[contains(@data-testid,'{data['heading']}')]"
             if data["type"] == "small"
             else f"//div[(@data-griditem-key or @data-panelid) and .//span[contains(text(), '{data['heading']}')]]/following-sibling::div[2]"
         )
-        scroll_to_widget(data["heading"])
-        img_binary = driver.find_element(By.XPATH, xpath).screenshot_as_png
+        
+        # Find the element and ensure it's fully visible
+        element = driver.find_element(By.XPATH, xpath)
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});", element)
+        time.sleep(0.5)  # Additional wait after scroll
+        
+        img_binary = element.screenshot_as_png
         img = Image.open(io.BytesIO(img_binary))
         filename = f"{region}/{name}"
         paths.append(filename)
@@ -179,48 +215,52 @@ def take_screenshots():
 def get_table_data(heading, two_cols=False, three_cols=False):
     table_xpath = f"//div[(@data-griditem-key or @data-panelid) and .//span[contains(text(), '{heading}')]]/following-sibling::div[2]//table"
     try:
-        name_header = driver.find_element(By.XPATH, f"{table_xpath}//th[@title='name']")
-        name_header.click()
-        name_header.click()
-    except NoSuchElementException:
-        pass
-    col_1 = driver.find_elements(
-        By.XPATH,
-        f"{table_xpath}//td[1]",
-    )
-    if two_cols or three_cols:
-        col_2 = driver.find_elements(
+        try:
+            name_header = driver.find_element(By.XPATH, f"{table_xpath}//th[@title='name']")
+            name_header.click()
+            name_header.click()
+        except NoSuchElementException:
+            pass
+        col_1 = driver.find_elements(
             By.XPATH,
-            f"{table_xpath}//td[2]",
+            f"{table_xpath}//td[1]",
         )
-    if three_cols:
-        col_3 = driver.find_elements(
-            By.XPATH,
-            f"{table_xpath}//td[3]",
-        )
-    if len(col_1) == 0:
-        return "No data"
-    else:
-        data = (
-            [
-                {"name": el1.text.replace(f"{region}-", ""), "value": el2.text}
-                for el1, el2 in zip(col_1, col_2)
-            ]
-            if two_cols
-            else (
-                [
-                    {
-                        "name": el1.text.replace(f"{region}-", ""),
-                        "value": el2.text,
-                        "max": el3.text,
-                    }
-                    for el1, el2, el3 in zip(col_1, col_2, col_3)
-                ]
-                if three_cols
-                else [el.text.replace(f"{region}-", "") for el in col_1]
+        if two_cols or three_cols:
+            col_2 = driver.find_elements(
+                By.XPATH,
+                f"{table_xpath}//td[2]",
             )
-        )
-        return data
+        if three_cols:
+            col_3 = driver.find_elements(
+                By.XPATH,
+                f"{table_xpath}//td[3]",
+            )
+        if len(col_1) == 0:
+            return "No data"
+        else:
+            data = (
+                [
+                    {"name": el1.text.replace(f"{region}-", ""), "value": el2.text}
+                    for el1, el2 in zip(col_1, col_2)
+                ]
+                if two_cols
+                else (
+                    [
+                        {
+                            "name": el1.text.replace(f"{region}-", ""),
+                            "value": el2.text,
+                            "max": el3.text,
+                        }
+                        for el1, el2, el3 in zip(col_1, col_2, col_3)
+                    ]
+                    if three_cols
+                    else [el.text.replace(f"{region}-", "") for el in col_1]
+                )
+            )
+            return data
+    except Exception as e:
+        print(f"Error getting table data for {heading}: {e}")
+        return "No data"
 
 
 def close_menu():
@@ -257,7 +297,7 @@ try:
         else:
             os.makedirs(region, exist_ok=True)
         print(f"Opening {region} Grafana dashboard...")
-        driver.get(url)
+        safe_get(url)
 
         login_user()
         time.sleep(5)
@@ -301,10 +341,15 @@ try:
         date.today().strftime("%Y-%m-%d") + "_" + time.strftime("%H-%M")
     )
     os.makedirs("reports", exist_ok=True)
-    generate_pdf("reports", f"service_monitoring_{formatted_datetime}.pdf")
+    try:
+        generate_pdf("reports", f"service_monitoring_{formatted_datetime}.pdf")
+        print("Report generated successfully!")
+    except Exception as pdf_error:
+        print(f"Error generating PDF: {pdf_error}")
+        import traceback
+        traceback.print_exc()
 
 except Exception as e:
     print("Encountered error", e)
-    print(e.with_traceback)
 finally:
     driver.close()
