@@ -143,15 +143,16 @@ def wait_for_widgets_to_load(max_timeout=60):
     )
 
 
-def scroll_to_widget(heading):
+def scroll_to_widget(heading=None, xpath=None):
+    xpath = xpath or f"//*[contains(text(), '{heading}')]"
     attempts = 0
     try:
         page = driver.find_element(By.ID, "page-scrollbar")
     except NoSuchElementException:
         page = None
-    while attempts < 10:
+    while attempts < 20:
         elements = driver.find_elements(
-            By.XPATH, f"//*[contains(text(), '{heading}')]"
+            By.XPATH, xpath
         )
         if elements:
             break
@@ -165,9 +166,16 @@ def scroll_to_widget(heading):
         time.sleep(1)
         attempts += 1
     widget = driver.find_element(
-        By.XPATH, f"//*[contains(text(), '{heading}')]"
+        By.XPATH, xpath
     )
     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", widget)
+    if page:
+        driver.execute_script(
+            "arguments[0].scrollTop = arguments[0].scrollTop - 100", page
+        )
+    else:
+        driver.execute_script("window.scrollBy(0, -100)")
+    time.sleep(1)
     wait_for_widgets_to_load()
 
 
@@ -285,8 +293,7 @@ def expand_all_tabs():
 output = {}
 REGION_OUTPUTS = {}
 try:
-    for name, url in REGION_DATA.items():
-        region = name
+    for region, url in REGION_DATA.items():
         # Clear folder contents
         if os.path.exists(region):
             for root, dirs, files in os.walk(region, topdown=False):
@@ -309,7 +316,7 @@ try:
         output["sli"] = get_value(HEADINGS["sli"])
         # Websockets
         scroll_to_widget(HEADINGS["websockets"])
-        output["websockets"] = get_value(HEADINGS["websockets"])
+        output["websockets"] = get_value(HEADINGS["websockets"], region)
         # duration > 500ms
         scroll_to_widget(HEADINGS["duration_over_500ms"])
         output["duration_over_500ms"] = get_table_data(HEADINGS["duration_over_500ms"])
