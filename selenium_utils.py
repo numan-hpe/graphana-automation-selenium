@@ -59,7 +59,7 @@ def login_user(driver):
 
 
 def wait_for_widgets_to_load(driver, max_timeout=180):
-    expand_all_tabs(driver)
+    # expand_all_tabs(driver)
     WebDriverWait(driver, max_timeout).until(
         lambda driver: len(
             driver.find_elements(By.XPATH, "//div[@aria-label='Panel loading bar']")
@@ -195,7 +195,8 @@ def close_menu(driver):
         WebDriverWait(driver, 30).until(
             EC.presence_of_element_located((By.ID, "dock-menu-button"))
         ).click()
-    except NoSuchElementException:
+    except Exception as e:
+        print(f"Could not close side menu: {e}")
         pass
 
 
