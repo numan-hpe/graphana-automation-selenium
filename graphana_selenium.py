@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+import traceback
 from datetime import date
 import time
 import os
@@ -96,7 +97,7 @@ try:
     generate_pdf("reports", f"service_monitoring_{formatted_datetime}.pdf")
 
 except Exception as e:
-    print("Encountered error", e)
-    print(e.with_traceback)
+    print("Error occurred: ")
+    print(traceback.format_exc())
 finally:
     driver.close()

@@ -29,18 +29,23 @@ def prepare_table_data(cpu, memory, pod_counts):
     output = []
     SERVICES.sort()
     for service in SERVICES:
-        svc_cpu = next((x for x in cpu if x["name"] == service), None)
-        svc_memory = next((x for x in memory if x["name"] == service), None)
-        svc_pod_count = next((x for x in pod_counts if x["name"] == service), None)
+        svc_cpu = next(
+            (x for x in cpu if isinstance(x, dict) and x["name"] == service), {}
+        )
+        svc_memory = next(
+            (x for x in memory if isinstance(x, dict) and x["name"] == service), {}
+        )
+        svc_pod_count = next(
+            (x for x in pod_counts if isinstance(x, dict) and x["name"] == service), {}
+        )
         output.append(
             {
                 "name": service,
-                "cpu": svc_cpu["value"],
-                "memory": svc_memory["value"],
-                "pod_count": f"{svc_pod_count['value']}  ({svc_pod_count['max']})",
+                "cpu": svc_cpu.get("value", "--"),
+                "memory": svc_memory.get("value", "--"),
+                "pod_count": f"{svc_pod_count.get('value', '--')}  ({svc_pod_count.get('max', '--')})",
             }
         )
-    # output.sort(key=lambda x: x["name"])
     return output
 
 
